@@ -231,28 +231,13 @@ if role == "User":
         st.table(pd.DataFrame(st.session_state.history))
 
 # ================= BOT MODULE =================
-if role == "Bot":
+try:
+    response = gemini_model.generate_content(prompt)
+    st.subheader("🤖 Bot Response")
+    st.write(response.text)
+except Exception:
+    st.error("Bot service temporarily unavailable. Please try again later.")
 
-    st.subheader("🤖 Medical Doubt Assistant")
-    st.info("Educational answers only. Consult a doctor for treatment.")
-
-    question = st.text_area("Ask your medical question")
-
-    if st.button("Ask Bot") and question.strip():
-
-        prompt = f"""
-        You are an educational medical assistant.
-        Do not diagnose.
-        Do not prescribe medication.
-        Answer clearly and simply.
-
-        Question:
-        {question}
-        """
-
-        response = gemini_model.generate_content(prompt)
-        st.subheader("🤖 Bot Response")
-        st.write(response.text)
 
 # ================= ADMIN MODULE =================
 if role == "Admin":
@@ -290,5 +275,6 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
