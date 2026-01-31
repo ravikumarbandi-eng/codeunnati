@@ -150,7 +150,7 @@ precautions_data = {
     "Anemia":{"dose":"Once daily","duration":"3 months","visit":"Hb check after 1 month"},
     "Vitamin D Deficiency":{"dose":"Once weekly","duration":"6–8 weeks","visit":"Test after course"},
     "Dehydration":{"dose":"After episodes","duration":"Until recovery","visit":"If dizziness occurs"}
-
+}
 # ================= USER MODULE =================
 if role == "User":
 
@@ -290,3 +290,4 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
