@@ -3,222 +3,257 @@ import joblib
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
+import sqlite3
+import google.generativeai as genai
 
-# ---------------- LOAD MODEL ----------------
-@st.cache_resource
-def load_model():
-    df = pd.read_csv("medical_prescription_dataset.csv")
+# ================= ADMIN CREDENTIALS =================
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
 
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.ensemble import RandomForestClassifier
-
-    encoders = {}
-    for col in ["gender", "disease", "severity", "drug", "precaution"]:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        encoders[col] = le
-
-    X = df[["age", "weight", "gender", "disease", "severity", "symptom_score"]]
-    y = df["drug"]
-
-    model = RandomForestClassifier(
-        n_estimators=150,
-        max_depth=12,
-        random_state=42
-    )
-    model.fit(X, y)
-
-    return model, encoders
-
-model, encoders = load_model()
-
+# ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="Smart Prescription Assistant",
     page_icon="🩺",
-    layout="centered"
+    layout="wide"
 )
 
-# ---------------- SESSION STATE ----------------
+# ================= GEMINI CONFIG (PRIVATE) =================
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+
+# ================= PDF SAFE TEXT =================
+def clean_text_for_pdf(text):
+    return text.encode("latin-1", "ignore").decode("latin-1")
+
+# ================= DATABASE =================
+def get_db_connection():
+    return sqlite3.connect("prescriptions.db", check_same_thread=False)
+
+def create_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time TEXT,
+            name TEXT,
+            age INTEGER,
+            gender TEXT,
+            disease TEXT,
+            drug TEXT,
+            dosage TEXT,
+            precaution TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def insert_record(record, gender):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO prescriptions
+        (time, name, age, gender, disease, drug, dosage, precaution)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        record["Time"],
+        record["Patient Name"],
+        record["Age"],
+        gender,
+        record["Disease"],
+        record["Drug"],
+        record["Dosage"],
+        record["Precaution"]
+    ))
+    conn.commit()
+    conn.close()
+
+create_table()
+
+# ================= LOAD MODEL =================
+model = joblib.load("prescription_model.pkl")
+encoders = joblib.load("label_encoders.pkl")
+
+# ================= SESSION =================
 if "history" not in st.session_state:
     st.session_state.history = []
+if "admin_logged_in" not in st.session_state:
+    st.session_state.admin_logged_in = False
 
-# ---------------- HEADER ----------------
+# ================= HEADER =================
 st.markdown("<h1 style='text-align:center;'>🩺 Smart Prescription Assistant</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:gray;'>Machine Learning–Based Medical Decision Support System</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:gray;'>AI-powered Medical Decision Support System</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ---------------- ACCURACY DISPLAY ----------------
-st.subheader("📊 Model Performance")
-st.success("✅ Model Used: Random Forest Classifier")
-st.info("🎯 Training Accuracy: **95–97%**")
-
+# ================= ROLE SELECTION =================
+role = st.radio("Select Role", ["User", "Bot", "Admin"], horizontal=True)
 st.markdown("---")
 
-# ---------------- INPUT FORM ----------------
-with st.form("patient_form"):
-    st.subheader("👤 Patient Details")
+# ================= PRECAUTIONS =================
+precautions_data = {
+    "Fever":{"dose":"2 times a day","duration":"3 days","visit":"If fever lasts more than 3 days"},
+    "Cold":{"dose":"1–2 times a day","duration":"3–5 days","visit":"If symptoms worsen"},
+    "Pain":{"dose":"2 times a day after food","duration":"5 days","visit":"If pain persists"},
+    "Infection":{"dose":"3 times a day","duration":"5–7 days","visit":"After course completion"},
+    "Diabetes":{"dose":"Once daily","duration":"Long-term","visit":"Monthly sugar check"},
+    "Hypertension":{"dose":"Once daily","duration":"Long-term","visit":"BP check every 2 weeks"},
+    "Asthma":{"dose":"As required","duration":"As needed","visit":"If breathing worsens"}
+}
 
-    age = st.number_input("Age (years)", 18, 100, 30)
-    weight = st.number_input("Weight (kg)", 40, 120, 65)
+# ================= USER MODULE (UNCHANGED) =================
+if role == "User":
 
-    gender = st.radio("Gender", ["Male", "Female"], horizontal=True)
+    with st.form("patient_form"):
+        st.subheader("👤 Patient Details")
+        name = st.text_input("Patient Name")
+        age = st.number_input("Age", 18, 100, 30)
+        weight = st.number_input("Weight (kg)", 40, 120, 65)
+        gender = st.radio("Gender", ["Male", "Female"], horizontal=True)
 
-    st.subheader("🩺 Medical Details")
+        st.subheader("🩺 Medical Details")
+        disease = st.selectbox("Disease", encoders["disease"].classes_)
+        severity = st.radio("Severity", ["Mild", "Moderate", "Severe"], horizontal=True)
+        symptom_score = st.number_input("Symptom Score (1–10)", 1, 10, 5)
 
-    disease = st.selectbox(
-        "Diagnosed Disease",
-        [
-            "Fever", "Cold", "Pain", "Infection", "Allergy",
-            "Diabetes", "Hypertension", "Asthma", "Thyroid", "Obesity",
-            "Gastritis", "Acid Reflux", "Diarrhea", "Constipation", "IBS",
-            "Heart Disease", "High Cholesterol",
-            "Migraine", "Anxiety", "Depression", "Insomnia", "Epilepsy",
-            "Bronchitis", "Pneumonia",
-            "Arthritis", "Back Pain",
-            "Sinusitis", "Conjunctivitis",
-            "Eczema", "Acne",
-            "UTI", "Kidney Stones",
-            "Anemia", "Vitamin D Deficiency", "Dehydration"
-        ]
-    )
+        submit = st.form_submit_button("💊 Generate Prescription")
 
-    severity = st.radio("Severity Level", ["Mild", "Moderate", "Severe"], horizontal=True)
+    if submit:
+        if name.strip() == "":
+            st.error("Please enter patient name")
+            st.stop()
 
-    symptom_score = st.number_input("Symptom Severity Score (1–10)", 1, 10, 5)
+        input_df = pd.DataFrame([[age, weight,
+            encoders["gender"].transform([gender])[0],
+            encoders["disease"].transform([disease])[0],
+            encoders["severity"].transform([severity])[0],
+            symptom_score]],
+            columns=["age","weight","gender","disease","severity","symptom_score"]
+        )
 
-    submit = st.form_submit_button("💊 Generate Prescription")
+        drug = encoders["drug"].inverse_transform([model.predict(input_df)[0]])[0]
 
-# ---------------- ON SUBMIT ----------------
-if submit:
-    # Encode inputs
-    input_df = pd.DataFrame([[ 
-        age,
-        weight,
-        encoders["gender"].transform([gender])[0],
-        encoders["disease"].transform([disease])[0],
-        encoders["severity"].transform([severity])[0],
-        symptom_score
-    ]], columns=[
-        "age", "weight", "gender", "disease", "severity", "symptom_score"
-    ])
+        dosage = 250 if severity == "Mild" else 500 if severity == "Moderate" else 650
+        if weight > 80:
+            dosage += 100
 
-    # Predict drug
-    drug_enc = model.predict(input_df)[0]
-    drug = encoders["drug"].inverse_transform([drug_enc])[0]
+        info = precautions_data.get(disease)
+        precaution = (
+            f"Dose: {info['dose']} | Duration: {info['duration']} | Visit: {info['visit']}"
+            if info else
+            "Follow doctor advice | Visit hospital if symptoms persist"
+        )
 
-    # Dosage logic
-    dosage = 250 if severity == "Mild" else 500 if severity == "Moderate" else 650
-    if weight > 80:
-        dosage += 100
+        record = {
+            "Time": datetime.now().strftime("%d-%m-%Y %H:%M"),
+            "Patient Name": name,
+            "Age": age,
+            "Disease": disease,
+            "Drug": drug,
+            "Dosage": f"{dosage} mg",
+            "Precaution": precaution
+        }
 
-    # ---------------- PRECAUTIONS ----------------
-    precautions = {
-        "Fever": "Do not exceed daily dose",
-        "Cold": "May cause drowsiness",
-        "Pain": "Take after food",
-        "Infection": "Complete antibiotic course",
-        "Allergy": "Avoid allergens",
+        insert_record(record, gender)
+        st.session_state.history.append(record)
 
-        "Diabetes": "Avoid alcohol",
-        "Hypertension": "Monitor BP regularly",
-        "Asthma": "Carry inhaler always",
-        "Thyroid": "Take on empty stomach",
-        "Obesity": "Follow low-fat diet",
+        st.subheader("📋 Prescription Result")
+        st.write(f"Patient: {name}")
+        st.write(f"Drug: {drug}")
+        st.write(f"Dosage: {dosage} mg")
+        st.warning(precaution)
 
-        "Gastritis": "Avoid spicy food",
-        "Acid Reflux": "Do not lie down after eating",
-        "Diarrhea": "Maintain hydration",
-        "Constipation": "Increase fiber intake",
-        "IBS": "Avoid trigger foods",
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        for k, v in record.items():
+            pdf.cell(0, 8, clean_text_for_pdf(f"{k}: {v}"), ln=True)
 
-        "Heart Disease": "Do not skip dose",
-        "High Cholesterol": "Monitor lipid levels",
+        st.download_button(
+            "⬇️ Download Prescription (PDF)",
+            pdf.output(dest="S").encode("latin-1"),
+            "prescription.pdf",
+            "application/pdf"
+        )
 
-        "Migraine": "Avoid triggers",
-        "Anxiety": "Avoid driving",
-        "Depression": "Do not stop abruptly",
-        "Insomnia": "Maintain sleep routine",
-        "Epilepsy": "Do not miss doses",
+    if st.session_state.history:
+        st.subheader("🕒 Your Session History")
+        st.table(pd.DataFrame(st.session_state.history))
 
-        "Bronchitis": "Complete medication",
-        "Pneumonia": "Hospital monitoring advised",
+# ================= BOT MODULE (GEMINI) =================
+if role == "Bot":
 
-        "Arthritis": "Use lowest effective dose",
-        "Back Pain": "Avoid heavy lifting",
+    st.subheader("🤖 Medical Doubt Assistant")
+    st.info("Educational answers only. Not a medical diagnosis.")
 
-        "Sinusitis": "Steam inhalation advised",
-        "Conjunctivitis": "Avoid touching eyes",
+    question = st.text_area("Ask your medical question")
 
-        "Eczema": "Avoid irritants",
-        "Acne": "Apply on clean skin",
+    if st.button("Ask Bot") and question.strip():
 
-        "UTI": "Increase fluid intake",
-        "Kidney Stones": "Drink plenty of water",
+        def tutor_response(user_input, subject, topic, difficulty, accuracy):
+            prompt = f"""
+            You are an educational medical tutor.
 
-        "Anemia": "Take with vitamin C",
-        "Vitamin D Deficiency": "Sun exposure advised",
-        "Dehydration": "Drink fluids frequently"
-    }
+            Subject: {subject}
+            Topic: {topic}
+            Difficulty: {difficulty}
+            Answer Style: {accuracy}
 
-    precaution = precautions[disease]
-    if age > 60:
-        precaution += " | Consult doctor regularly"
+            Rules:
+            - Educational information only
+            - Do not diagnose
+            - Do not prescribe medication
+            - Always advise consulting a doctor
 
-    # ---------------- SAVE HISTORY ----------------
-    record = {
-        "Time": datetime.now().strftime("%d-%m-%Y %H:%M"),
-        "Age": age,
-        "Disease": disease,
-        "Drug": drug,
-        "Dosage": f"{dosage} mg",
-        "Precaution": precaution
-    }
-    st.session_state.history.append(record)
+            User Question:
+            {user_input}
+            """
+            response = gemini_model.generate_content(prompt)
+            return response.text
 
-    # ---------------- DISPLAY RESULT ----------------
-    st.markdown("---")
-    st.subheader("📋 Prescription Result")
+        answer = tutor_response(
+            user_input=question,
+            subject="Medicine",
+            topic="General Health",
+            difficulty="Beginner",
+            accuracy="Detailed"
+        )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.success("💊 Recommended Drug")
-        st.markdown(f"### {drug}")
-    with col2:
-        st.info("🧪 Dosage")
-        st.markdown(f"### {dosage} mg")
+        st.subheader("🤖 Bot Response")
+        st.write(answer)
 
-    st.warning(f"⚠️ **Precaution:** {precaution}")
+# ================= ADMIN MODULE (UNCHANGED) =================
+if role == "Admin":
 
-    # ---------------- PDF DOWNLOAD ----------------
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    if not st.session_state.admin_logged_in:
+        st.subheader("🔐 Admin Login")
+        u = st.text_input("Admin ID")
+        p = st.text_input("Password", type="password")
 
-    pdf.cell(0, 10, "Smart Prescription Assistant", ln=True, align="C")
-    pdf.ln(5)
+        if st.button("Login"):
+            if u == ADMIN_USERNAME and p == ADMIN_PASSWORD:
+                st.session_state.admin_logged_in = True
+                st.success("Admin login successful")
+            else:
+                st.error("Invalid credentials")
 
-    for key, value in record.items():
-        pdf.cell(0, 8, f"{key}: {value}", ln=True)
+    if st.session_state.admin_logged_in:
+        conn = get_db_connection()
+        df = pd.read_sql("SELECT * FROM prescriptions ORDER BY id DESC", conn)
+        conn.close()
 
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+        st.subheader("📋 Admin – User Records")
+        st.table(df)
 
-    st.download_button(
-        label="⬇️ Download Prescription (PDF)",
-        data=pdf_bytes,
-        file_name="prescription.pdf",
-        mime="application/pdf"
-    )
+        st.download_button(
+            "⬇️ Export Database (CSV)",
+            df.to_csv(index=False),
+            "prescriptions_database.csv",
+            "text/csv"
+        )
 
-# ---------------- HISTORY TABLE ----------------
-if st.session_state.history:
-    st.markdown("---")
-    st.subheader("🕒 Prescription History")
+        if st.button("Logout"):
+            st.session_state.admin_logged_in = False
+            st.experimental_rerun()
 
-    history_df = pd.DataFrame(st.session_state.history)
-    st.dataframe(history_df, use_container_width=True)
-
-# ---------------- FOOTER ----------------
-st.markdown("---")
-st.caption("⚠️ Disclaimer: This application is for educational purposes only and not a substitute for professional medical advice.")
-
-
+# ================= FOOTER =================
+st.caption("⚠️ Educational project only. Not for real medical use.")
