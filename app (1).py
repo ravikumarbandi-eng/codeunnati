@@ -91,13 +91,41 @@ st.markdown("---")
 
 # ================= PRECAUTIONS =================
 precautions_data = {
-    "Fever":{"dose":"2 times a day","duration":"3 days","visit":"If fever lasts more than 3 days"},
+   "Fever":{"dose":"2 times a day","duration":"3 days","visit":"If fever lasts more than 3 days"},
     "Cold":{"dose":"1–2 times a day","duration":"3–5 days","visit":"If symptoms worsen"},
     "Pain":{"dose":"2 times a day after food","duration":"5 days","visit":"If pain persists"},
     "Infection":{"dose":"3 times a day","duration":"5–7 days","visit":"After course completion"},
+    "Allergy":{"dose":"Once daily","duration":"As prescribed","visit":"If reaction increases"},
     "Diabetes":{"dose":"Once daily","duration":"Long-term","visit":"Monthly sugar check"},
     "Hypertension":{"dose":"Once daily","duration":"Long-term","visit":"BP check every 2 weeks"},
-    "Asthma":{"dose":"As required","duration":"As needed","visit":"If breathing worsens"}
+    "Asthma":{"dose":"As required","duration":"As needed","visit":"If breathing worsens"},
+    "Thyroid":{"dose":"Once daily","duration":"Long-term","visit":"Thyroid test every 3 months"},
+    "Obesity":{"dose":"Once daily","duration":"As prescribed","visit":"Diet review monthly"},
+    "Gastritis":{"dose":"Once daily","duration":"7 days","visit":"If pain persists"},
+    "Acid Reflux":{"dose":"Once daily","duration":"7 days","visit":"If chest pain continues"},
+    "Diarrhea":{"dose":"After each episode","duration":"2–3 days","visit":"If dehydration occurs"},
+    "Constipation":{"dose":"Once daily","duration":"5 days","visit":"If no improvement"},
+    "IBS":{"dose":"2 times a day","duration":"As prescribed","visit":"If pain continues"},
+    "Heart Disease":{"dose":"Once daily","duration":"Long-term","visit":"Immediately if chest pain"},
+    "High Cholesterol":{"dose":"Once daily","duration":"Long-term","visit":"Lipid test every 3 months"},
+    "Migraine":{"dose":"At headache onset","duration":"As needed","visit":"If attacks increase"},
+    "Anxiety":{"dose":"Once daily","duration":"As prescribed","visit":"Mental health follow-up"},
+    "Depression":{"dose":"Once daily","duration":"Long-term","visit":"Regular psychiatric visit"},
+    "Insomnia":{"dose":"Once daily at night","duration":"7–14 days","visit":"If sleep not improved"},
+    "Epilepsy":{"dose":"As prescribed","duration":"Long-term","visit":"Neurology review"},
+    "Bronchitis":{"dose":"2 times a day","duration":"5–7 days","visit":"If breathing worsens"},
+    "Pneumonia":{"dose":"As prescribed","duration":"7–14 days","visit":"Hospital admission advised"},
+    "Arthritis":{"dose":"2 times a day","duration":"As prescribed","visit":"If swelling increases"},
+    "Back Pain":{"dose":"2 times a day","duration":"5 days","visit":"If pain radiates"},
+    "Sinusitis":{"dose":"2 times a day","duration":"5–7 days","visit":"If facial pain persists"},
+    "Conjunctivitis":{"dose":"2–3 times a day","duration":"5 days","visit":"If vision blurs"},
+    "Eczema":{"dose":"Apply twice daily","duration":"7 days","visit":"If itching worsens"},
+    "Acne":{"dose":"Apply once daily","duration":"2–4 weeks","visit":"If no improvement"},
+    "UTI":{"dose":"2 times a day","duration":"5 days","visit":"If burning continues"},
+    "Kidney Stones":{"dose":"Once daily","duration":"As prescribed","visit":"If severe pain"},
+    "Anemia":{"dose":"Once daily","duration":"3 months","visit":"Hb check after 1 month"},
+    "Vitamin D Deficiency":{"dose":"Once weekly","duration":"6–8 weeks","visit":"Test after course"},
+    "Dehydration":{"dose":"After episodes","duration":"Until recovery","visit":"If dizziness occurs"}
 }
 
 # ================= USER MODULE (UNCHANGED) =================
@@ -257,3 +285,4 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
