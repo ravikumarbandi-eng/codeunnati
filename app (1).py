@@ -18,7 +18,7 @@ st.set_page_config(
 
 # ================= GEMINI CONFIG =================
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-3-flash-preview")
 
 # ================= PDF SAFE TEXT =================
 def clean_text_for_pdf(text):
@@ -290,4 +290,5 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
