@@ -1,5 +1,4 @@
 import streamlit as st
-import joblib
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
@@ -17,7 +16,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ================= GEMINI CONFIG (PRIVATE) =================
+# ================= GEMINI CONFIG =================
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -71,7 +70,6 @@ def insert_record(record, gender):
 create_table()
 
 # ================= LOAD MODEL =================
-# ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
     df = pd.read_csv("medical_prescription_dataset.csv")
@@ -80,7 +78,6 @@ def load_model():
     from sklearn.ensemble import RandomForestClassifier
 
     encoders = {}
-
     for col in ["gender", "disease", "severity", "drug", "precaution"]:
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col])
@@ -97,6 +94,9 @@ def load_model():
     model.fit(X, y)
 
     return model, encoders
+
+# ✅ REQUIRED INITIALIZATION (THIS WAS THE MISSING PART)
+model, encoders = load_model()
 
 # ================= SESSION =================
 if "history" not in st.session_state:
@@ -150,9 +150,8 @@ precautions_data = {
     "Anemia":{"dose":"Once daily","duration":"3 months","visit":"Hb check after 1 month"},
     "Vitamin D Deficiency":{"dose":"Once weekly","duration":"6–8 weeks","visit":"Test after course"},
     "Dehydration":{"dose":"After episodes","duration":"Until recovery","visit":"If dizziness occurs"}
-}
 
-# ================= USER MODULE (UNCHANGED) =================
+# ================= USER MODULE =================
 if role == "User":
 
     with st.form("patient_form"):
@@ -231,49 +230,31 @@ if role == "User":
         st.subheader("🕒 Your Session History")
         st.table(pd.DataFrame(st.session_state.history))
 
-# ================= BOT MODULE (GEMINI) =================
+# ================= BOT MODULE =================
 if role == "Bot":
 
     st.subheader("🤖 Medical Doubt Assistant")
-    st.info("Educational answers only. Not a medical diagnosis.")
+    st.info("Educational answers only. Consult a doctor for treatment.")
 
     question = st.text_area("Ask your medical question")
 
     if st.button("Ask Bot") and question.strip():
 
-        def tutor_response(user_input, subject, topic, difficulty, accuracy):
-            prompt = f"""
-            You are an educational medical tutor.
+        prompt = f"""
+        You are an educational medical assistant.
+        Do not diagnose.
+        Do not prescribe medication.
+        Answer clearly and simply.
 
-            Subject: {subject}
-            Topic: {topic}
-            Difficulty: {difficulty}
-            Answer Style: {accuracy}
+        Question:
+        {question}
+        """
 
-            Rules:
-            - Educational information only
-            - Do not diagnose
-            - Do not prescribe medication
-            - Always advise consulting a doctor
-
-            User Question:
-            {user_input}
-            """
-            response = gemini_model.generate_content(prompt)
-            return response.text
-
-        answer = tutor_response(
-            user_input=question,
-            subject="Medicine",
-            topic="General Health",
-            difficulty="Beginner",
-            accuracy="Detailed"
-        )
-
+        response = gemini_model.generate_content(prompt)
         st.subheader("🤖 Bot Response")
-        st.write(answer)
+        st.write(response.text)
 
-# ================= ADMIN MODULE (UNCHANGED) =================
+# ================= ADMIN MODULE =================
 if role == "Admin":
 
     if not st.session_state.admin_logged_in:
@@ -309,5 +290,3 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
-
-
