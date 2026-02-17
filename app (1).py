@@ -66,8 +66,37 @@ def insert_record(record, gender):
 create_table()
 
 # ================= LOAD MODEL =================
-model = joblib.load("prescription_model.pkl")
-encoders = joblib.load("label_encoders.pkl")
+# ================= LOAD MODEL FROM CSV (NO PKL) =================
+@st.cache_resource
+def load_model():
+    df = pd.read_csv("medical_prescription_dataset.csv")
+
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.ensemble import RandomForestClassifier
+
+    encoders = {}
+
+    for col in ["gender", "disease", "severity", "drug"]:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+        encoders[col] = le
+
+    X = df[["age", "weight", "gender", "disease", "severity", "symptom_score"]]
+    y = df["drug"]
+
+    model = RandomForestClassifier(
+        n_estimators=150,
+        max_depth=12,
+        random_state=42
+    )
+
+    model.fit(X, y)
+
+    return model, encoders
+
+
+model, encoders = load_model()
+
 
 # ================= SESSION STATE =================
 if "history" not in st.session_state:
@@ -258,3 +287,4 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
