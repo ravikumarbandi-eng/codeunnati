@@ -190,7 +190,7 @@ if role == "User":
             dosage += 100
 
         info = precautions_data.get(disease)
-        precaution = f"Dose: {info['dose']} | Duration: {info['duration']} | Visit: {info['visit']}"
+        precaution = f"Dose: {info['dose']} | Duration: {info['duration']} | Visit Hosiptal: {info['visit']}"
 
         record = {
             "Time": datetime.now().strftime("%d-%m-%Y %H:%M"),
@@ -287,5 +287,6 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
