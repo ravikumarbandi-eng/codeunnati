@@ -1,9 +1,9 @@
 import streamlit as st
+import joblib
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
 import sqlite3
-import google.generativeai as genai
 
 # ================= ADMIN CREDENTIALS =================
 ADMIN_USERNAME = "admin"
@@ -15,10 +15,6 @@ st.set_page_config(
     page_icon="🩺",
     layout="wide"
 )
-
-# ================= GEMINI CONFIG =================
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-3-flash-preview")
 
 # ================= PDF SAFE TEXT =================
 def clean_text_for_pdf(text):
@@ -70,35 +66,10 @@ def insert_record(record, gender):
 create_table()
 
 # ================= LOAD MODEL =================
-@st.cache_resource
-def load_model():
-    df = pd.read_csv("medical_prescription_dataset.csv")
+model = joblib.load("prescription_model.pkl")
+encoders = joblib.load("label_encoders.pkl")
 
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.ensemble import RandomForestClassifier
-
-    encoders = {}
-    for col in ["gender", "disease", "severity", "drug", "precaution"]:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        encoders[col] = le
-
-    X = df[["age", "weight", "gender", "disease", "severity", "symptom_score"]]
-    y = df["drug"]
-
-    model = RandomForestClassifier(
-        n_estimators=150,
-        max_depth=12,
-        random_state=42
-    )
-    model.fit(X, y)
-
-    return model, encoders
-
-# ✅ REQUIRED INITIALIZATION (THIS WAS THE MISSING PART)
-model, encoders = load_model()
-
-# ================= SESSION =================
+# ================= SESSION STATE =================
 if "history" not in st.session_state:
     st.session_state.history = []
 if "admin_logged_in" not in st.session_state:
@@ -110,12 +81,12 @@ st.markdown("<p style='text-align:center;color:gray;'>AI-powered Medical Decisio
 st.markdown("---")
 
 # ================= ROLE SELECTION =================
-role = st.radio("Select Role", ["User", "Bot", "Admin"], horizontal=True)
+role = st.radio("Select Role", ["User", "Admin"], horizontal=True)
 st.markdown("---")
 
 # ================= PRECAUTIONS =================
 precautions_data = {
-   "Fever":{"dose":"2 times a day","duration":"3 days","visit":"If fever lasts more than 3 days"},
+    "Fever":{"dose":"2 times a day","duration":"3 days","visit":"If fever lasts more than 3 days"},
     "Cold":{"dose":"1–2 times a day","duration":"3–5 days","visit":"If symptoms worsen"},
     "Pain":{"dose":"2 times a day after food","duration":"5 days","visit":"If pain persists"},
     "Infection":{"dose":"3 times a day","duration":"5–7 days","visit":"After course completion"},
@@ -151,6 +122,7 @@ precautions_data = {
     "Vitamin D Deficiency":{"dose":"Once weekly","duration":"6–8 weeks","visit":"Test after course"},
     "Dehydration":{"dose":"After episodes","duration":"Until recovery","visit":"If dizziness occurs"}
 }
+
 # ================= USER MODULE =================
 if role == "User":
 
@@ -181,18 +153,15 @@ if role == "User":
             columns=["age","weight","gender","disease","severity","symptom_score"]
         )
 
-        drug = encoders["drug"].inverse_transform([model.predict(input_df)[0]])[0]
+        drug_enc = model.predict(input_df)[0]
+        drug = encoders["drug"].inverse_transform([drug_enc])[0]
 
         dosage = 250 if severity == "Mild" else 500 if severity == "Moderate" else 650
         if weight > 80:
             dosage += 100
 
         info = precautions_data.get(disease)
-        precaution = (
-            f"Dose: {info['dose']} | Duration: {info['duration']} | Visit: {info['visit']}"
-            if info else
-            "Follow doctor advice | Visit hospital if symptoms persist"
-        )
+        precaution = f"Dose: {info['dose']} | Duration: {info['duration']} | Visit: {info['visit']}"
 
         record = {
             "Time": datetime.now().strftime("%d-%m-%Y %H:%M"),
@@ -206,13 +175,26 @@ if role == "User":
 
         insert_record(record, gender)
         st.session_state.history.append(record)
+    
+        st.markdown("---")
+        st.subheader("📋 Prescription Result 🤖")
 
-        st.subheader("📋 Prescription Result")
-        st.write(f"Patient: {name}")
-        st.write(f"Drug: {drug}")
-        st.write(f"Dosage: {dosage} mg")
-        st.warning(precaution)
+        col1, col2, col3 = st.columns(3)
 
+        with col1:
+          st.info("👤 Patient Name")
+          st.markdown(f"### {name}")
+
+        with col2:
+          st.success("💊 Recommended Drug")
+          st.markdown(f"### {drug}")
+
+        with col3:
+          st.info("🧪 Dosage")
+          st.markdown(f"### {dosage} mg")
+
+        st.warning(f"⚠️ {precaution}")
+   
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
@@ -230,15 +212,6 @@ if role == "User":
         st.subheader("🕒 Your Session History")
         st.table(pd.DataFrame(st.session_state.history))
 
-# ================= BOT MODULE =================
-try:
-    response = gemini_model.generate_content(prompt)
-    st.subheader("🤖 Bot Response")
-    st.write(response.text)
-except Exception:
-    st.error("Bot service temporarily unavailable. Please try again later.")
-
-
 # ================= ADMIN MODULE =================
 if role == "Admin":
 
@@ -255,15 +228,25 @@ if role == "Admin":
                 st.error("Invalid credentials")
 
     if st.session_state.admin_logged_in:
+        st.subheader("📋 Admin – User Records (Table View Only)")
+
         conn = get_db_connection()
         df = pd.read_sql("SELECT * FROM prescriptions ORDER BY id DESC", conn)
         conn.close()
 
-        st.subheader("📋 Admin – User Records")
         st.table(df)
 
+        stats = {
+            "Total Users (Entries)": [len(df)],
+            "Unique Patients": [df["name"].nunique()],
+            "Diseases Covered": [df["disease"].nunique()],
+            "Drugs Recommended": [df["drug"].nunique()]
+        }
+        st.subheader("📊 System Statistics (Table)")
+        st.table(pd.DataFrame(stats))
+
         st.download_button(
-            "⬇️ Export Database (CSV)",
+            "⬇️ Export Full Database (CSV)",
             df.to_csv(index=False),
             "prescriptions_database.csv",
             "text/csv"
@@ -275,6 +258,3 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
-
-
-
