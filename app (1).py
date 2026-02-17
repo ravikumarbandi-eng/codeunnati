@@ -6,8 +6,8 @@ from datetime import datetime
 import sqlite3
 
 # ================= ADMIN CREDENTIALS =================
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
+ADMIN_USERNAME = "Siri"
+ADMIN_PASSWORD = "2312"
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -287,4 +287,5 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
