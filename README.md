@@ -2,7 +2,7 @@
 **Machine Learning–Based Medical Decision Support System**
 ## 🚀 Live Project Demo
 
-👉 **[🔗 Click Here to View Live Application](https://smart-prescription-assistant.streamlit.app/)**
+👉 **[🔗 Click Here to View Live Application](https://sirivennela0123.streamlit.app/)**
 
 ---
 
