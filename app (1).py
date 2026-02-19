@@ -16,7 +16,7 @@ gemini_model = genai.GenerativeModel("gemini-3-flash-preview")
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Ⓢmart Prescription Assistant",
+    page_title="Smart Prescription Assistant",
     page_icon="🩺",
     layout="wide"
 )
@@ -327,6 +327,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
