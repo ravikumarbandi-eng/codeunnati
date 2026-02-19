@@ -16,7 +16,7 @@ gemini_model = genai.GenerativeModel("gemini-3-flash-preview")
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Smart Prescription Assistant",
+    page_title="Ⓢmart Prescription Assistant",
     page_icon="🩺",
     layout="wide"
 )
@@ -110,7 +110,7 @@ if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
 # ================= HEADER =================
-st.markdown("<h1 style='text-align:center;'>🩺 Smart Prescription Assistant</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🩺 Ⓢmart Prescription Assistant</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;color:gray;'>AI-powered Medical Decision Support System</p>", unsafe_allow_html=True)
 st.markdown("---")
 
@@ -327,6 +327,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
