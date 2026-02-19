@@ -4,10 +4,15 @@ import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
 import sqlite3
+import google.generativeai as genai
 
 # ================= ADMIN CREDENTIALS =================
 ADMIN_USERNAME = "Siri"
 ADMIN_PASSWORD = "2312"
+
+# ================= GEMINI CONFIG =================
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+gemini_model = genai.GenerativeModel("gemini-pro")
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -241,6 +246,40 @@ if role == "User":
         st.subheader("🕒 Your Session History")
         st.table(pd.DataFrame(st.session_state.history))
 
+if role == "Bot":
+
+    st.subheader("🤖 Medical Doubt Assistant")
+    st.info("Educational purposes only. This does not replace professional medical advice.")
+
+    question = st.text_area("Ask your medical question here")
+
+    if st.button("Ask Bot"):
+
+        if question.strip() == "":
+            st.warning("Please enter your question.")
+        else:
+            prompt = f"""
+            You are a medical educational assistant.
+
+            Rules:
+            - Provide general health information.
+            - Do not prescribe medicines.
+            - Do not diagnose conditions.
+            -Give point wise suggestions.
+            - Always suggest consulting a doctor.
+
+            Question:
+            {question}
+            """
+
+            try:
+                response = gemini_model.generate_content(prompt)
+                st.subheader("🤖 Bot Response")
+                st.write(response.text)
+
+            except Exception as e:
+                st.error("Bot service temporarily unavailable. Please try again later.")
+
 # ================= ADMIN MODULE =================
 if role == "Admin":
 
@@ -287,6 +326,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
