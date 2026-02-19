@@ -12,7 +12,7 @@ ADMIN_PASSWORD = "2312"
 
 # ================= GEMINI CONFIG =================
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-gemini_model = genai.GenerativeModel("gemini-pro")
+gemini_model = genai.GenerativeModel("gemini-3-flash-preview")
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -326,6 +326,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
