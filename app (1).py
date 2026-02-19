@@ -115,7 +115,7 @@ st.markdown("<p style='text-align:center;color:gray;'>AI-powered Medical Decisio
 st.markdown("---")
 
 # ================= ROLE SELECTION =================
-role = st.radio("Select Role", ["User", "Admin"], horizontal=True)
+role = st.radio("Select Role", ["User","Bot","Admin"], horizontal=True)
 st.markdown("---")
 
 # ================= PRECAUTIONS =================
@@ -326,6 +326,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
