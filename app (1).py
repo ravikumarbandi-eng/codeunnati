@@ -248,7 +248,7 @@ if role == "User":
 
 if role == "Bot":
 
-    st.subheader("🤖 Medical Doubt Assistant")
+    st.subheader("🤖 IRIS BOT")
     st.info("Educational purposes only. This does not replace professional medical advice.")
 
     question = st.text_area("Ask your medical question here")
@@ -266,6 +266,7 @@ if role == "Bot":
             - Do not prescribe medicines.
             - Do not diagnose conditions.
             -Give point wise suggestions.
+            -Give easy and understanding points.
             - Always suggest consulting a doctor.
 
             Question:
@@ -274,11 +275,11 @@ if role == "Bot":
 
             try:
                 response = gemini_model.generate_content(prompt)
-                st.subheader("🤖 Bot Response")
+                st.subheader("🤖 IRIS Response")
                 st.write(response.text)
 
             except Exception as e:
-                st.error("Bot service temporarily unavailable. Please try again later.")
+                st.error("IRIS service temporarily unavailable. Please try again later.")
 
 # ================= ADMIN MODULE =================
 if role == "Admin":
@@ -326,6 +327,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
