@@ -248,7 +248,7 @@ if role == "User":
 
 if role == "Bot":
 
-    st.subheader("🤖 𝔦𝔯ίⓈ 𝐁𝓸𝐓")
+    st.subheader("🤖 𝔦𝔯ί𝓈 𝐁𝓸𝐓")
     st.info("Educational purposes only. This does not replace professional medical advice.")
 
     question = st.text_area("Ask your medical question here")
@@ -275,11 +275,11 @@ if role == "Bot":
 
             try:
                 response = gemini_model.generate_content(prompt)
-                st.subheader("🤖 𝔦𝔯ίⓈ 𝐁𝓸𝐓 Response")
+                st.subheader("🤖 𝔦𝔯ί𝓈 𝐁𝓸𝐓 Response")
                 st.write(response.text)
 
             except Exception as e:
-                st.error("𝔦𝔯ίⓈ 𝐁𝓸𝐓 service temporarily unavailable. Please try again later.")
+                st.error("𝔦𝔯ί𝓈 𝐁𝓸𝐓 service temporarily unavailable. Please try again later.")
 
 # ================= ADMIN MODULE =================
 if role == "Admin":
@@ -327,6 +327,7 @@ if role == "Admin":
 
 # ================= FOOTER =================
 st.caption("⚠️ Educational project only. Not for real medical use.")
+
 
 
 
