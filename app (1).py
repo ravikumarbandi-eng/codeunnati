@@ -7,8 +7,8 @@ import sqlite3
 import google.generativeai as genai
 
 # ================= ADMIN CREDENTIALS =================
-ADMIN_USERNAME = "Siri"
-ADMIN_PASSWORD = "2312"
+ADMIN_USERNAME = "ABCD"
+ADMIN_PASSWORD = "1234"
 
 # ================= GEMINI CONFIG =================
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
