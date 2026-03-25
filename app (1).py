@@ -323,7 +323,8 @@ if role == "Admin":
 
         if st.button("Logout"):
             st.session_state.admin_logged_in = False
-            st.rerun():#st.experimental_rerun()
+            #st.rerun():
+            st.experimental_rerun()
 
 
 # ================= FOOTER =================
